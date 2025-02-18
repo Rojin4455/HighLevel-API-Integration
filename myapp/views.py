@@ -49,17 +49,14 @@ def oauth_callback(request):
     try:
         response_data = response.json()
         
-        # Store tokens in session
         request.session['access_token'] = response_data.get('access_token')
         request.session['refresh_token'] = response_data.get('refresh_token')
         request.session['token_type'] = response_data.get('token_type')
         request.session['expires_in'] = response_data.get('expires_in')
         
-        # Optional: Store the timestamp when token was received
         from datetime import datetime
         request.session['token_timestamp'] = datetime.now().timestamp()
         
-        # Make sure the session is saved
         request.session.modified = True
         
         return JsonResponse({
@@ -92,9 +89,9 @@ def create_contact(request):
     }
 
     data = {
-        "firstName": "kiran",
-        "lastName": "pk",
-        "email": "kiran7@example.com",
+        "firstName": "justin",
+        "lastName": "john",
+        "email": "justin@example.com",
         "locationId": LOCATION_ID
     }
 
@@ -148,33 +145,7 @@ def get_contact_by_email(request):
 
 
 
-def get_contact_details_with_fields(request, contact_id):
-    ACCESS_TOKEN = request.session.get('access_token')
-    
-    url = f"https://services.leadconnectorhq.com/contacts/{contact_id}"
-    
-    headers = {
-        "Authorization": f"Bearer {ACCESS_TOKEN}",
-        "Content-Type": "application/json",
-        "Version": "2021-07-28"
-    }
-    
-    response = requests.get(url, headers=headers)
-    print("Response Status Code:", response.status_code)
-    print("Response Text:", response.text)
-    
-    try:
-        contact_data = response.json()
-        
-        custom_fields = contact_data.get('contact', {}).get('customFields', [])
-        
-        return JsonResponse({
-            "contact_id": contact_id,
-            "custom_fields": custom_fields,
-            "full_contact_data": contact_data
-        })
-    except Exception as e:
-        return JsonResponse({"error": str(e)}, status=500)
+
 
 
 
@@ -203,3 +174,87 @@ def get_contacts(request):
     print("Response Text-----------------:", response.text)
 
     return JsonResponse(response.json())
+
+
+
+
+def update_custom_field(request, contact_id):
+    ACCESS_TOKEN = request.session.get('access_token')
+
+
+    url = f"https://services.leadconnectorhq.com/contacts/{contact_id}"
+
+    headers = {
+        "Authorization": f"Bearer {ACCESS_TOKEN}",
+        "Content-Type": "application/json",
+        "Version": "2021-07-28"
+    }
+
+    
+    data = {
+        "customFields": [
+            {
+                "id": "api_test_field",
+                "name": "API Test Field",
+                "value": "The Field Value Changed"
+            }
+        ]
+    }
+
+    response = requests.put(url, json=data, headers=headers)
+    print("Update Response Status Code:--------", response.status_code)
+    print("Update Response Text:", response.text)
+
+    try:
+        response_data = response.json()
+        
+        verification_response = requests.get(url, headers=headers)
+        verification_data = verification_response.json()
+
+        return JsonResponse({
+            "message": "Custom field update attempted",
+            "update_response": response_data,
+            "current_contact_data": verification_data
+        })
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+    
+
+
+def get_details_with_custom_fields(request,contact_id):
+    ACCESS_TOKEN = request.session.get('access_token')
+
+    url = f"https://services.leadconnectorhq.com/contacts/{contact_id}"
+    
+    headers = {
+        "Authorization": f"Bearer {ACCESS_TOKEN}",
+        "Content-Type": "application/json",
+        "Version": "2021-07-28"
+    }
+    
+    response = requests.get(url, headers=headers)
+    print("Response Status Code:", response.status_code)
+    print("Response Text:", response.text)
+    
+    try:
+        contact_data = response.json()
+        print()
+        print()
+        print()
+        print("contact data:      ----------------------->", contact_data)
+        print()
+        print()
+        print()
+        
+
+        custom_fields = contact_data.get('contact', {}).get('customFields', [])
+
+
+
+        return JsonResponse({
+            "contact_id": contact_id,
+            "custom_fields": custom_fields,
+            "full_contact_data": contact_data
+        })
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
